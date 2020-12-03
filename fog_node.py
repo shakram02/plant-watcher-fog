@@ -1,5 +1,5 @@
 # import paho.mqtt.client as mqtt
-import edge_server
+from edge.server import EdgeServer
 
 MQTT_BROKER = "174.138.103.162"
 MQTT_TOPIC = "/hello_world"
@@ -33,7 +33,7 @@ def mqtt_main():
 def main():
     # mqtt_main()
     ip, port = "0.0.0.0", 8000
-    server = edge_server.EdgeServer(ip, port)
+    server = EdgeServer(ip, port)
     server.loop_forever()
 
 

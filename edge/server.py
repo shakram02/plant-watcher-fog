@@ -3,6 +3,9 @@ import uuid
 import struct
 import select
 import socket
+import enum
+import json
+from edge import status
 from datetime import datetime
 
 NAMESPACE = uuid.uuid4()
@@ -31,6 +34,22 @@ def read_chunkable_message(client_buffer: bytes):
         return None
 
     return splits
+
+
+class MessageType(enum.Enum):
+    Hello = 0x1
+    Data = 0x2
+    Command = 0x3
+
+
+class EdgeMessage(object):
+    HeaderSize = 3
+
+    def __init__(self, msg_type: MessageType, msg_length: int, msg_data: bytes):
+        self.type = msg_type
+        self.length = msg_length
+        self.data = json.loads(
+            msg_data, object_hook=status.as_edge_update)
 
 
 class EdgeServer(object):
@@ -69,7 +88,7 @@ class EdgeServer(object):
         client_messages = self._read_sockets(readable)
         if client_messages:
             print(*client_messages.values())
-        self._clean_idle()
+
         if exceptional:
             print("EXCEPTION:", exceptional)
 
@@ -86,20 +105,33 @@ class EdgeServer(object):
             return
 
         client_messages = {}
-        data, address = self.server_sock.recvfrom(1024)
-        msg_type = data[0]
-        msg = data[1:]
-        if msg_type == 0x01:
-            secret = str(msg, "UTF-8")
+        data = self.server_sock.recv(EdgeMessage.HeaderSize, socket.MSG_PEEK)
+        (msg_type, msg_length) = self._parse_header(data)
+
+        data, address = self.server_sock.recvfrom(
+            msg_length+EdgeMessage.HeaderSize)
+
+        if msg_type == MessageType.Hello:
+            secret = str(data[EdgeMessage.HeaderSize:], "UTF-8")
             client_uuid = self._initialize_new_client(secret, address)
             print(f"[{secret}] Connected as: {client_uuid}")
-        else:
-            msg = str(msg, "UTF-8")
-            print("DATA:", msg)
-            # msgs = self._read_client_messages(msg)
-            # client_messages[address] = msgs
+        elif msg_type == MessageType.Data:
+            msg = self._parse_message(data)
+            print(f"[{msg.data.uuid}]:", msg.data)
 
         return client_messages
+
+    @staticmethod
+    def _parse_header(msg_header):
+        (msg_type, msg_length) = struct.unpack_from('<BH', msg_header)
+        return MessageType(msg_type), msg_length
+
+    @staticmethod
+    def _parse_message(msg_bytes) -> EdgeMessage:
+        (msg_type, msg_length) = struct.unpack_from('<BH', msg_bytes)
+        msg_data = str(msg_bytes[3:], "ASCII")
+
+        return EdgeMessage(MessageType(msg_type), msg_length, msg_data)
 
     def _initialize_new_client(self, secret: str, address: Tuple[str, int]) -> str:
         device_uuid = str(uuid.uuid3(NAMESPACE, str(secret)))
@@ -124,19 +156,3 @@ class EdgeServer(object):
             # Re-append unparsed messages
             self.message_buffers[client] = rem
         return full
-
-    def _clean_idle(self):
-        now = datetime.now()
-        for client in tuple(self.heartbeats):
-            client: socket.socket = client
-            last_heartbeat_timestamp = self.heartbeats[client]
-            idle = (now - last_heartbeat_timestamp)
-            idle_minutes = idle.total_seconds() // 60
-            if idle_minutes > 0:
-                print(client.getpeername(), "Idle for:",
-                      idle_minutes, "minutes [{} s]".format(idle.total_seconds()))
-
-                # Remove client data
-                self.heartbeats.pop(client)
-                self.inputs.remove(client)
-                client.close()
