@@ -5,6 +5,7 @@ import select
 import socket
 import enum
 import json
+import logging
 from edge import status
 from datetime import datetime
 
@@ -73,13 +74,13 @@ class EdgeServer(object):
     def loop_forever(self):
         self.server_sock.bind(self.addr)
         self.inputs = [self.server_sock]
-        print("Bound to:", self.addr)
+        logging.info(f"Bound to: {self.addr}")
         while True:
             self._loop()
 
     def _loop(self):
         """
-            Runs select() and handles readble/writable/errornous sockets.
+            Runs select() and handles readable/writable/errornous sockets.
             After each select loop, idle clients are closed and removed.
         """
         readable, _, exceptional = select.select(
@@ -87,10 +88,10 @@ class EdgeServer(object):
 
         client_messages = self._read_sockets(readable)
         if client_messages:
-            print(*client_messages.values())
+            logging.info(f"{client_messages.values()}")
 
         if exceptional:
-            print("EXCEPTION:", exceptional)
+            logging.info(f"EXCEPTION: {exceptional}")
 
     def _read_sockets(self, readable):
         """
@@ -114,10 +115,10 @@ class EdgeServer(object):
         if msg_type == MessageType.Hello:
             secret = str(data[EdgeMessage.HeaderSize:], "UTF-8")
             client_uuid = self._initialize_new_client(secret, address)
-            print(f"[{secret}] Connected as: {client_uuid}")
+            logging.info(f"[{secret}] Connected as: {client_uuid}")
         elif msg_type == MessageType.Data:
             msg = self._parse_message(data)
-            print(f"[{msg.data.uuid}]:", msg.data)
+            logging.info(f"({msg.data.uuid})\t{msg.data}")
 
         return client_messages
 

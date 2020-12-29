@@ -8,13 +8,13 @@ class EdgeUpdate(object):
         self.dht_humidity = dht_humidity
 
     def __str__(self) -> str:
-        buffer = f"[{self.timestamp}] "
+        buffer = ""
         if self.temp:
             buffer += f"Soil Temp:{self.temp}°C "
         if self.dht_temp:
             buffer += f"Air Temp:{self.dht_temp}°C "
         if self.dht_humidity:
-            buffer += f"Air Humidity:{self.dht_humidity}°C "
+            buffer += f"Air Humidity:{self.dht_humidity}%"
 
         return buffer
 
