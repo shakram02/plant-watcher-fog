@@ -10,4 +10,5 @@ EXPOSE 8000
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends vim
 
+WORKDIR /app
 CMD exec /bin/bash -c "trap : TERM INT; sleep infinity & wait"
