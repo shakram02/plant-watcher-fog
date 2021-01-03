@@ -8,6 +8,7 @@ import json
 import logging
 from edge import status
 from datetime import datetime
+from queue import Queue
 
 NAMESPACE = uuid.uuid4()
 NOLINGER = struct.pack('ii', 1, 0)
@@ -44,6 +45,10 @@ class MessageType(enum.Enum):
 
 
 class EdgeMessage(object):
+    """
+        An EdgeMessage is a full message from the node
+        including the header.
+    """
     HeaderSize = 3
 
     def __init__(self, msg_type: MessageType, msg_length: int, msg_data: bytes):
@@ -54,7 +59,7 @@ class EdgeMessage(object):
 
 
 class EdgeServer(object):
-    def __init__(self, ip, port):
+    def __init__(self, ip: str, port: int, msg_queue: Queue):
         """
         Initializes a new EdgeServer
         """
@@ -70,6 +75,7 @@ class EdgeServer(object):
         self.message_buffers = {}
         self.heartbeats = {}
         self.outputs = []
+        self.msg_queue = msg_queue
 
     def loop_forever(self):
         self.server_sock.bind(self.addr)
@@ -118,7 +124,10 @@ class EdgeServer(object):
             logging.info(f"[{secret}] Connected as: {client_uuid}")
         elif msg_type == MessageType.Data:
             msg = self._parse_message(data)
-            logging.info(f"({msg.data.uuid})\t{msg.data}")
+            msg: status.EdgeUpdate = msg.data
+
+            logging.debug(f"({msg.uuid})\t{msg}")
+            self.msg_queue.put(msg)
 
         return client_messages
 
