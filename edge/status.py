@@ -7,11 +7,11 @@ class EdgeUpdate(object):
         the sensing node.
     """
 
-    def __init__(self, uuid, timestamp, temp, dht_temp, dht_humidity):
+    def __init__(self, uuid, timestamp, temp, humidity, dht_temp, dht_humidity):
         self.uuid = uuid
         self.timestamp = timestamp
         self.temp = temp
-        self.humidity = None
+        self.humidity = humidity
         self.dht_temp = dht_temp
         self.dht_humidity = dht_humidity
 
@@ -31,10 +31,11 @@ def as_edge_update(msg_dict: dict):
     update_uuid = msg_dict.get("uuid")
     timestamp = msg_dict.get("epoch")
     temp = msg_dict.get("temp")
+    humidity = msg_dict.get("humidity")
     dht_temp = msg_dict.get("dhtT")
     dht_humidity = msg_dict.get("dhtH")
 
-    return EdgeUpdate(update_uuid, timestamp, temp, dht_temp, dht_humidity)
+    return EdgeUpdate(update_uuid, timestamp, temp, humidity, dht_temp, dht_humidity)
 
 
 class EdgeUpdateEncoder(JSONEncoder):
