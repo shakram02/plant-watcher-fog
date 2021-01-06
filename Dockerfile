@@ -8,7 +8,7 @@ EXPOSE 8000
 
 # [Optional] Uncomment this section to install additional OS packages.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends vim
+    && apt-get -y install --no-install-recommends vim mosquitto-clients
 
 WORKDIR /app
 CMD exec /bin/bash -c "trap : TERM INT; sleep infinity & wait"

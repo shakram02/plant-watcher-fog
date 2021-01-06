@@ -1,7 +1,10 @@
 import json
 import threading
 import logging
+import telepot
+import os
 import paho.mqtt.client as mqtt
+from dotenv import load_dotenv
 from queue import Queue
 from edge.status import EdgeUpdate, EdgeUpdateEncoder
 from edge.server import EdgeServer
@@ -39,6 +42,11 @@ def mqtt_main(msq_queue: Queue):
         if not json_message:
             continue
 
+        if message.temp > 23:
+            logging.info(f"Alerting [Temp:{message.temp}]")
+            temp_alert = f"The temperature is getting high: {message.temp}"
+            bot.sendMessage(CHAT_ID, temp_alert)
+
         logging.info(f"Pushing data from [{message.uuid}]")
         client.publish(MQTT_TOPIC, json_message)
 
@@ -46,7 +54,6 @@ def mqtt_main(msq_queue: Queue):
 def main():
     format = "[%(asctime)s]: %(message)s"
     logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
-
     ip, port = "0.0.0.0", 8000
     msg_queue = Queue()
     server = EdgeServer(ip, port, msg_queue)
@@ -57,4 +64,7 @@ def main():
 
 
 if __name__ == "__main__":
+    load_dotenv()
+    bot = telepot.Bot(os.getenv("TELEGRAM_TOKEN"))
+    CHAT_ID = os.getenv("MY_CHAT_ID")
     main()
