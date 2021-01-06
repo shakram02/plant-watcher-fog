@@ -9,9 +9,12 @@ from queue import Queue
 from edge.status import EdgeUpdate, EdgeUpdateEncoder
 from edge.server import EdgeServer
 
-MQTT_BROKER = "174.138.103.162"
-MQTT_TOPIC = "/hello_world"
-MQTT_PORT = 3882
+load_dotenv()
+MQTT_BROKER = os.getenv("MQTT_BROKER")
+MQTT_TOPIC = os.getenv("MQTT_TOPIC")
+MQTT_PORT = int(os.getenv("MQTT_PORT"))
+CHAT_ID = os.getenv("MY_CHAT_ID")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 
 def connect_mqtt(client):
@@ -27,6 +30,7 @@ def connect_mqtt(client):
 def mqtt_main(msq_queue: Queue):
     logging.info("Setting up MQTT client...")
     client = mqtt.Client()  # create new instance
+    bot = telepot.Bot(TELEGRAM_TOKEN)
     connect_mqtt(client)
 
     while True:
@@ -64,7 +68,4 @@ def main():
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    bot = telepot.Bot(os.getenv("TELEGRAM_TOKEN"))
-    CHAT_ID = os.getenv("MY_CHAT_ID")
     main()
